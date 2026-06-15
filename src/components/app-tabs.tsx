@@ -5,28 +5,43 @@ import { Colors } from '@/constants/theme';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme ?? 'light'];
 
   return (
     <NativeTabs
       backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      iconColor="#079494"
+      labelStyle={{ selected: { color: '#079494' } }}>
+
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
+          sf={{ default: 'house', selected: 'house.fill' }}
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="saved">
+        <NativeTabs.Trigger.Label>Saved</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
+          sf={{ default: 'heart', selected: 'heart.fill' }}
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="bookings">
+        <NativeTabs.Trigger.Label>Bookings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'calendar', selected: 'calendar.badge.checkmark' }}
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'person', selected: 'person.fill' }}
+        />
+      </NativeTabs.Trigger>
+
     </NativeTabs>
   );
 }
