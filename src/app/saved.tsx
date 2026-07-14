@@ -1,11 +1,14 @@
-import { Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native';
 
-const saved = () => {
+export default function GlassContainerDemo() {
   return (
-    <View>
-      <Text>saved</Text>
+    <View style={styles.container}>
     </View>
-  )
+  );
 }
 
-export default saved
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

@@ -8,7 +8,6 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme'
 export default function bookings() {
   return (
     <SafeAreaView>
-      <Header />
       <Text>Bookings</Text>
     </SafeAreaView>
   )

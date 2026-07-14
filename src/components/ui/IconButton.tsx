@@ -1,26 +1,37 @@
-// Button.tsx — zero dependency on pressto
+// IconButton.tsx
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
-    ActivityIndicator,
-    Platform,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
 } from 'react-native';
 import {
-    Gesture,
-    GestureDetector,
-    GestureHandlerRootView,
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
+
+// Conditionally import the modern Expo Glass Effect module safely
+let GlassView: any = null;
+let isGlassEffectAPIAvailable: (() => boolean) | null = null;
+try {
+  const GlassModule = require('expo-glass-effect');
+  GlassView = GlassModule.GlassView;
+  isGlassEffectAPIAvailable = GlassModule.isGlassEffectAPIAvailable;
+} catch (e) {
+  // Graceful fallback if module isn't loaded
+}
 
 interface IconButtonProps {
   onPress?: () => void;
@@ -35,9 +46,9 @@ interface IconButtonProps {
   children: React.ReactNode;
 }
 
-// Spring configs
-const SPRING_DOWN = { damping: 15, stiffness: 320, mass: 0.8 };  // snap in
-const SPRING_UP   = { damping: 18, stiffness: 280, mass: 0.8 };  // release
+// Fluid interaction spring weight configurations
+const SPRING_DOWN = { damping: 14, stiffness: 360, mass: 0.7 };
+const SPRING_UP   = { damping: 16, stiffness: 260, mass: 0.8 };
 
 function IconButton({
   onPress,
@@ -56,50 +67,62 @@ function IconButton({
   const scale = useSharedValue(1);
   const radius = rounded ? size / 2 : borderRadius;
 
-  // JS-thread haptic helpers (called via runOnJS from worklet)
-  const hapticLight  = useCallback(() =>
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}), []);
-  const hapticMedium = useCallback(() =>
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}), []);
-  const firePress    = useCallback(() => { if (!loading) onPress?.(); },    [loading, onPress]);
-  const fireLong     = useCallback(() => { if (!loading) onLongPress?.(); }, [loading, onLongPress]);
+  // Runtime structural feature detection for iOS 26+ native engine
+  const useNativeLiquidGlass = useMemo(() => {
+    if (Platform.OS !== 'ios' || !GlassView || !isGlassEffectAPIAvailable) {
+      return false;
+    }
+    try {
+      return isGlassEffectAPIAvailable();
+    } catch {
+      return false;
+    }
+  }, []);
 
-  const gesture = Gesture.Simultaneous(
-    // Tap gesture — handles press + release scale
-    Gesture.Tap()
-      .onBegin(() => {
-        'worklet';
-        scale.value = withSpring(0.90, SPRING_DOWN);
-        runOnJS(hapticLight)();
-      })
-      .onEnd(() => {
-        'worklet';
-        scale.value = withSpring(1, SPRING_UP);
-        runOnJS(firePress)();
-      })
-      .onFinalize(() => {
-        'worklet';
-        scale.value = withSpring(1, SPRING_UP); // safety release on cancel
-      }),
+  const hapticLight  = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }, []);
+  
+  const hapticMedium = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  }, []);
 
-    // Long press gesture
-    Gesture.LongPress()
-      .minDuration(400)
-      .onStart(() => {
-        'worklet';
-        scale.value = withSpring(0.86, SPRING_DOWN); // deeper press for long hold
-        runOnJS(hapticMedium)();
-      })
-      .onEnd(() => {
-        'worklet';
-        scale.value = withSpring(1, SPRING_UP);
-        runOnJS(fireLong)();
-      })
-      .onFinalize(() => {
-        'worklet';
-        scale.value = withSpring(1, SPRING_UP);
-      }),
-  );
+  const firePress = useCallback(() => { if (!loading) onPress?.(); }, [loading, onPress]);
+  const fireLong  = useCallback(() => { if (!loading) onLongPress?.(); }, [loading, onLongPress]);
+
+  const tapGesture = Gesture.Tap()
+    .maxDuration(300)
+    .onBegin(() => {
+      'worklet';
+      scale.value = withSpring(0.92, SPRING_DOWN);
+      runOnJS(hapticLight)();
+    })
+    .onEnd(() => {
+      'worklet';
+      runOnJS(firePress)();
+    })
+    .onFinalize(() => {
+      'worklet';
+      scale.value = withSpring(1, SPRING_UP);
+    });
+
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(400)
+    .onStart(() => {
+      'worklet';
+      scale.value = withSpring(0.88, SPRING_DOWN);
+      runOnJS(hapticMedium)();
+    })
+    .onEnd(() => {
+      'worklet';
+      runOnJS(fireLong)();
+    })
+    .onFinalize(() => {
+      'worklet';
+      scale.value = withSpring(1, SPRING_UP);
+    });
+
+  const composedGesture = Gesture.Exclusive(longPressGesture, tapGesture);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -108,9 +131,11 @@ function IconButton({
 
   const inner = (
     <>
-      {loading
-        ? <ActivityIndicator color={isDark ? '#fff' : '#000'} size="small" />
-        : children}
+      {loading ? (
+        <ActivityIndicator color={isDark ? '#fff' : '#000'} size="small" />
+      ) : (
+        children
+      )}
       {badgeCount > 0 && !loading && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -122,9 +147,8 @@ function IconButton({
   );
 
   return (
-    // GestureHandlerRootView is safe to nest — RN gesture handler handles dedup
     <GestureHandlerRootView style={{ alignSelf: fullWidth ? 'stretch' : 'auto' }}>
-      <GestureDetector gesture={loading ? Gesture.Race() : gesture}>
+      <GestureDetector gesture={loading ? Gesture.Fling() : composedGesture}>
         <Animated.View
           style={[
             styles.base,
@@ -138,31 +162,46 @@ function IconButton({
           ]}
         >
           {Platform.OS === 'ios' ? (
-            /*
-             * iOS 26 Liquid Glass
-             * systemThinMaterial = deep translucent frosted layer
-             * dimezisBlurView = real-time composited blur (needed in RN)
-             * hairline specular border = the defining iOS 26 rim highlight
-             */
-            <BlurView
-              intensity={isDark ? 85 : 72}
-              tint={isDark ? 'systemThinMaterialDark' : 'systemThinMaterial'}
-              experimentalBlurMethod="dimezisBlurView"
-              style={[
-                StyleSheet.absoluteFill,
-                styles.center,
-                {
-                  borderRadius: radius,
-                  overflow: 'hidden',
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: isDark
-                    ? 'rgba(255,255,255,0.18)'
-                    : 'rgba(255,255,255,0.60)',
-                },
-              ]}
-            >
-              {inner}
-            </BlurView>
+            useNativeLiquidGlass ? (
+              /* Pipeline 1: iOS 26+ Liquid Glass Native Node */
+              <GlassView
+                isInteractive={true}
+                colorScheme={isDark ? 'dark' : 'light'}
+                glassEffectStyle="regular"
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.center,
+                  {
+                    borderRadius: radius,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: isDark
+                      ? 'rgba(255,255,255,0.18)'
+                      : 'rgba(255,255,255,0.60)',
+                  },
+                ]}
+              >
+                {inner}
+              </GlassView>
+            ) : (
+              /* Pipeline 2: iOS < 26 Backwards Compatible Composited Blur */
+              <BlurView
+                intensity={isDark ? 85 : 72}
+                tint={isDark ? 'systemThinMaterialDark' : 'systemThinMaterial'}
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.center,
+                  {
+                    borderRadius: radius,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: isDark
+                      ? 'rgba(255,255,255,0.18)'
+                      : 'rgba(255,255,255,0.60)',
+                  },
+                ]}
+              >
+                {inner}
+              </BlurView>
+            )
           ) : (
             <View
               style={[
@@ -193,7 +232,6 @@ export default IconButton;
 
 const styles = StyleSheet.create({
   base: {
-    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },

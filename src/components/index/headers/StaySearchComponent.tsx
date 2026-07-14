@@ -26,6 +26,7 @@ const StaySearchComponent = ({ initialSearchCriteria }: { initialSearchCriteria:
   return (
     <>
     <View style={styles.container}>
+      
       <ThemedView style={styles.inputButton}>
         <LocationPin width={24} height={24} color={isDark ? 'white' : 'black'} />
         <Pressable onPress={() => setSearchVisible(true)} style={{ flex: 1}}>
@@ -33,6 +34,7 @@ const StaySearchComponent = ({ initialSearchCriteria }: { initialSearchCriteria:
           <ThemedText style={styles.inputButtonTextValue}>{initialSearchCriteria?.destination?.city || 'Where are you going?'}</ThemedText>
         </Pressable>
       </ThemedView>
+     
       <ThemedView style={styles.inputButton}>
         <DateIcon width={24} height={24} color={isDark ? 'white' : 'black'} />
         <Pressable onPress={() => setDatePickerVisible(true)} style={{ flex: 1}}>
@@ -40,7 +42,10 @@ const StaySearchComponent = ({ initialSearchCriteria }: { initialSearchCriteria:
           <ThemedText style={styles.inputButtonTextValue}>{defaultCheckInDates() || 'Select your dates'}</ThemedText>
         </Pressable>
       </ThemedView>
+     
+     
       <View style={styles.searchButtonRow}>
+        
         <ThemedView style={[styles.inputButton, { width: '67%'}]}>
           <PersonIcon width={24} height={24} color={isDark ? 'white' : 'black'} />
           <Pressable onPress={() => setPeoplePickerVisible(true)} style={{ flex: 1}}>
@@ -48,14 +53,18 @@ const StaySearchComponent = ({ initialSearchCriteria }: { initialSearchCriteria:
             <ThemedText style={styles.inputButtonTextValue}>{selectedVisitors()}</ThemedText>
           </Pressable>
         </ThemedView>
+        
         <Button loading={false} onPress={() => console.log('pressing me!!')} btnStyle={styles.ctaBtn}>
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flex: 1}}>
             <SearchIcon width={18} height={18} color='#fff' />
             <ThemedText style={{ color: '#fff', fontWeight: 300, }}>Search</ThemedText>
             </View>
         </Button>
+
       </View>
+
     </View>
+    
     <SearchModal
       visible={searchVisible}
       onClose={() => setSearchVisible(false)}

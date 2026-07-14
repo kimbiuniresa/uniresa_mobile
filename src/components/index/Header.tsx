@@ -26,9 +26,9 @@ export default function Header() {
           onLongPress={() => console.log('Held down notification option menu')}
           badgeCount={7} 
           rounded={true}
-          size={42}
+          size={50}
         >
-          <NotificationIcon color={iconColor} width={22} height={22} />
+            <NotificationIcon color={iconColor} width={22} height={22} />
         </IconButton>
       </ThemedView>
       <SearchComponent />
@@ -52,5 +52,10 @@ const styles = StyleSheet.create({
   logo: { 
     width: 100, 
     height: 40 
+  },
+  btn: {
+    width: 50,
+    height: 50,
+    borderRadius: 30,
   },
 });
